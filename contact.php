@@ -1,31 +1,50 @@
 <?php
-// Check if form is submitted
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require 'PHPMailer/src/Exception.php';
+require 'PHPMailer/src/PHPMailer.php';
+require 'PHPMailer/src/SMTP.php';
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Get form data
-    $name = $_POST['contactName'];
-    $email = $_POST['contactEmail'];
-    $subject = $_POST['contactSubject'];
+    $name = str_replace(array("\r", "\n"), array(" ", " "), $_POST['contactName']);
+    $email = filter_var($_POST['contactEmail'], FILTER_SANITIZE_EMAIL);
+    $subject = !empty($_POST['contactSubject']) ? $_POST['contactSubject'] : 'Website Contact Form';
     $message = $_POST['contactMessage'];
-    
-    // Validate form data (you can add more validation here)
+
     if (empty($name) || empty($email) || empty($message)) {
-        // If required fields are empty, return error message
         echo "Please fill in all required fields.";
-    } else {
-        // Send email (you need to configure this part)
-        $to = "manndeepsainni@gmail.com"; // Your email address
-        $headers = "From: $name <$email>" . "\r\n";
-        $messageBody = "Name: $name\nEmail: $email\nSubject: $subject\n\n$message";
-        
-        // Send email
-        if (mail($to, $subject, $messageBody, $headers)) {
-            echo "Message sent successfully!";
-        } else {
-            echo "Error sending message. Please try again later.";
-        }
+        exit;
+    }
+
+    $mail = new PHPMailer(true);
+
+    try {
+        // Server settings
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'manndeepsainni@gmail.com';        // <-- replace with your Gmail
+        $mail->Password   = 'three0three';          // <-- replace with your Gmail App Password
+        $mail->SMTPSecure = 'tls';
+        $mail->Port       = 587;
+
+        // Recipients
+        $mail->setFrom($email, $name);
+        $mail->addAddress('manndeepsainni@gmail.com');         // your receiving email address
+        $mail->addReplyTo($email, $name);
+
+        // Content
+        $mail->isHTML(false);
+        $mail->Subject = $subject;
+        $mail->Body    = "Name: $name\nEmail: $email\nSubject: $subject\n\n$message";
+
+        $mail->send();
+        echo "Message sent successfully!";
+    } catch (Exception $e) {
+        echo "Mailer Error: {$mail->ErrorInfo}";
     }
 } else {
-    // If form is not submitted, return error message
     echo "Invalid request.";
 }
 ?>
